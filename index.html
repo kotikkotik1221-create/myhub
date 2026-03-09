@@ -546,7 +546,7 @@ body{
 
 /* subtask list inside card */
 .t-sulist{margin-top:4px;padding-top:4px;}
-.t-suitem{display:flex;align-items:center;gap:8px;padding:10px 4px;cursor:pointer;min-height:44px;margin:0 -4px;}
+.t-suitem{display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;min-height:44px;}
 .t-schk{
   width:17px;height:17px;border-radius:4px;flex-shrink:0;
   border:1.5px solid var(--s4);cursor:pointer;
@@ -1538,7 +1538,7 @@ function th(t){
 
   // subtask items for expand block
   const suItems=t.su.map((s,i)=>
-    '<div class="t-suitem" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+t.id+','+i+')" >'
+    '<div class="t-suitem" ontouchstart="event.stopPropagation();" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+t.id+','+i+')" >'
     +'<div class="t-schk'+(s.d?' on':'')+'"></div>'
     +'<span class="t-stext'+(s.d?' dn':'')+'"'
     +' onkeydown="event.stopPropagation();suKey(event,'+t.id+','+i+')">'
@@ -1652,7 +1652,7 @@ function addSuInline(id){
   // re-render only the subtask list
   if(sul){
     sul.innerHTML=t.su.map((s,i)=>
-      '<div class="t-suitem" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+id+','+i+')" >'
+      '<div class="t-suitem" ontouchstart="event.stopPropagation();" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+id+','+i+')" >'
       +'<div class="t-schk'+(s.d?' on':'')+'"></div>'
       +'<span class="t-stext'+(s.d?' dn':'')+'"'
       +' onkeydown="event.stopPropagation();suKey(event,'+id+','+i+')">'
@@ -1685,7 +1685,7 @@ function delSu(id,i){
   saveData();
   // re-render subtask list
   if(sul)sul.innerHTML=t.su.map((s,idx)=>
-    '<div class="t-suitem" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+t.id+','+i+')" >'
+    '<div class="t-suitem" ontouchstart="event.stopPropagation();" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+t.id+','+i+')" >'
     +'<div class="t-schk'+(s.d?' on':'')+'"></div>'
     +'<span class="t-stext'+(s.d?' dn':'')+'"'
     +' onkeydown="event.stopPropagation();suKey(event,'+id+','+idx+')">'
@@ -1709,7 +1709,7 @@ function suKey(e,id,i){
     saveData();
     if(sul){
       sul.innerHTML=t.su.map((s,idx)=>
-        '<div class="t-suitem" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+id+','+idx+')" >'
+        '<div class="t-suitem" ontouchstart="event.stopPropagation();" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+id+','+idx+')" >'
         +'<div class="t-schk'+(s.d?' on':'')+'"></div>'
         +'<span class="t-stext'+(s.d?' dn':'')+'">'+(s.t?s.t:'')+'</span>'
         +'<button class="t-su-del" onclick="event.stopPropagation();delSu('+id+','+idx+')">✕</button>'
