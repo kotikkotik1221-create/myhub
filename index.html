@@ -545,29 +545,32 @@ body{
 }
 
 /* subtask list inside card */
-.t-sulist{margin-top:4px;padding-top:4px;}
-.t-suitem{display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;min-height:44px;}
+.t-sulist{margin-top:4px;padding-top:4px;display:flex;flex-direction:column;gap:0;}
+.t-suitem{display:flex;align-items:center;gap:8px;padding:2px 0;min-height:0;width:100%;-webkit-tap-highlight-color:rgba(0,0,0,0);}
 .t-schk{
   width:17px;height:17px;border-radius:4px;flex-shrink:0;
-  border:1.5px solid var(--s4);cursor:pointer;
+  border:1.5px solid var(--s4);
   display:flex;align-items:center;justify-content:center;
-  transition:all .2s;
+  transition:all .2s;pointer-events:auto;cursor:pointer;
+  -webkit-tap-highlight-color:rgba(0,0,0,0);
 }
 .t-schk.on{background:var(--a2);border-color:var(--a2);}
 .t-schk.on::after{content:'✓';color:#fff;font-size:9px;font-weight:700;}
 .t-stext{
   flex:1;font-size:14px;color:var(--t2);
-  pointer-events:none;user-select:none;-webkit-user-select:none;
-  font-family:inherit;line-height:1.5;
-  padding:0;
+  pointer-events:auto;
+  font-family:inherit;line-height:1.4;
+  padding:2px 0;outline:none;
+  cursor:text;
+  -webkit-user-select:text;user-select:text;
 }
 .t-stext.dn{text-decoration:line-through;color:var(--t3);}
 .t-stext:empty:before{content:'Подзадача…';color:var(--t3);pointer-events:none;}
 .t-su-del{
   background:none;border:none;color:var(--t3);cursor:pointer;
-  font-size:14px;padding:2px 4px;opacity:0;transition:opacity .15s;
+  font-size:14px;padding:4px;opacity:0;transition:opacity .15s;pointer-events:auto;
 }
-.t-suitem:hover .t-su-del{opacity:1;}
+.t-suitem:hover .t-su-del,.t-su-del:focus{opacity:1;}
 .t-su-add{
   margin-top:4px;padding:6px 0;
   background:none;border:none;
@@ -1538,12 +1541,13 @@ function th(t){
 
   // subtask items for expand block
   const suItems=t.su.map((s,i)=>
-    '<div class="t-suitem" ontouchstart="event.stopPropagation();" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+t.id+','+i+')" >'
-    +'<div class="t-schk'+(s.d?' on':'')+'"></div>'
-    +'<span class="t-stext'+(s.d?' dn':'')+'"'
-    +' onkeydown="event.stopPropagation();suKey(event,'+t.id+','+i+')">'
+    '<div class="t-suitem">'
+    +'<div class="t-schk'+(s.d?' on':'')+'" ontouchstart="event.stopPropagation();event.preventDefault();tsu('+t.id+','+i+')" onclick="event.stopPropagation();tsu('+t.id+','+i+')"></div>'
+    +'<span class="t-stext'+(s.d?' dn':'')+'" contenteditable="true"'
+    +' onkeydown="event.stopPropagation();suKey(event,'+t.id+','+i+')"'
+    +' onblur="event.stopPropagation();updSuText('+t.id+','+i+',this)">'
     +esc(s.t)+'</span>'
-    +'<button class="t-su-del" onclick="event.stopPropagation();delSu('+t.id+','+i+')">✕</button>'
+    +'<button class="t-su-del" ontouchstart="event.stopPropagation();event.preventDefault();delSu('+t.id+','+i+')" onclick="event.stopPropagation();delSu('+t.id+','+i+')">✕</button>'
     +'</div>'
   ).join('');
 
@@ -1557,11 +1561,11 @@ function th(t){
     : '<div class="t-sulist" id="sul'+t.id+'" style="display:none"></div>';
   const addBtn = '<button class="t-su-add" ontouchend="event.stopPropagation();event.preventDefault();addSuInline('+t.id+')" onclick="event.stopPropagation();addSuInline('+t.id+')">+ подзадача</button>';
   const contentIcons = (desc || t.su.length) ? '›' : '';
-  const expand = '<div class="t-expand'+(desc||t.su.length?'':' t-expand-empty')+'" id="exp'+t.id+'">'+descBlock+suBlock+addBtn+'</div>';
+  const expand = '<div class="t-expand'+(desc||t.su.length?'':' t-expand-empty')+'" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation()" id="exp'+t.id+'">'+descBlock+suBlock+addBtn+'</div>';
 
   return '<div class="tc '+p2+(t.dn?' dn':'')+'" id="tc'+t.id+'" onclick="tss('+t.id+',event)">'
     +'<div class="ttop">'
-    +'<div class="chk'+(t.dn?' on':'')+'" onclick="event.stopPropagation();tt('+t.id+')"></div>'
+    +'<div class="chk'+(t.dn?' on':'')+'" ontouchstart="event.stopPropagation();tt('+t.id+')"></div>'
     +'<div class="tinfo">'
     +'<div class="ttitle">'+esc(t.title)+(contentIcons?'<span class="t-content-icons">'+contentIcons+'</span>':'')+'</div>'
     +'<div class="tmeta"><span class="tag tsph">'+esc(t.sp)+'</span><span class="tag '+pc+'">'+pl+'</span>'+dl+'</div>'
@@ -1601,6 +1605,13 @@ function tsu(tid,i){
 let _expandClickBlock=false;
 
 function tss(id,e){
+  if(e&&e.target.closest('.chk')){tt(id);return;}
+  if(e&&e.target.closest('.tacts')){return;}
+  if(e&&e.target.closest('.t-suitem')){
+    // клики внутри подзадачи обрабатываются самими элементами (чекбокс и текст)
+    return;
+  }
+  if(e&&e.target.closest('.t-su-add')){return;}
   if(_expandClickBlock){_expandClickBlock=false;return;}
   if(e){
     const exp=document.getElementById('exp'+id);
@@ -1652,12 +1663,13 @@ function addSuInline(id){
   // re-render only the subtask list
   if(sul){
     sul.innerHTML=t.su.map((s,i)=>
-      '<div class="t-suitem" ontouchstart="event.stopPropagation();" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+id+','+i+')" >'
-      +'<div class="t-schk'+(s.d?' on':'')+'"></div>'
-      +'<span class="t-stext'+(s.d?' dn':'')+'"'
-      +' onkeydown="event.stopPropagation();suKey(event,'+id+','+i+')">'
+      '<div class="t-suitem">'
+      +'<div class="t-schk'+(s.d?' on':'')+'" ontouchstart="event.stopPropagation();event.preventDefault();tsu('+id+','+i+')" onclick="event.stopPropagation();tsu('+id+','+i+')"></div>'
+      +'<span class="t-stext'+(s.d?' dn':'')+'" contenteditable="true"'
+      +' onkeydown="event.stopPropagation();suKey(event,'+id+','+i+')"'
+      +' onblur="event.stopPropagation();updSuText('+id+','+i+',this)">'
       +esc(s.t)+'</span>'
-      +'<button class="t-su-del" onclick="event.stopPropagation();delSu('+id+','+i+')">✕</button>'
+      +'<button class="t-su-del" ontouchstart="event.stopPropagation();event.preventDefault();delSu('+id+','+i+')" onclick="event.stopPropagation();delSu('+id+','+i+')">✕</button>'
       +'</div>'
     ).join('');
     // focus last item
@@ -1685,12 +1697,13 @@ function delSu(id,i){
   saveData();
   // re-render subtask list
   if(sul)sul.innerHTML=t.su.map((s,idx)=>
-    '<div class="t-suitem" ontouchstart="event.stopPropagation();" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+t.id+','+i+')" >'
-    +'<div class="t-schk'+(s.d?' on':'')+'"></div>'
-    +'<span class="t-stext'+(s.d?' dn':'')+'"'
-    +' onkeydown="event.stopPropagation();suKey(event,'+id+','+idx+')">'
+    '<div class="t-suitem">'
+    +'<div class="t-schk'+(s.d?' on':'')+'" ontouchstart="event.stopPropagation();event.preventDefault();tsu('+t.id+','+idx+')" onclick="event.stopPropagation();tsu('+t.id+','+idx+')"></div>'
+    +'<span class="t-stext'+(s.d?' dn':'')+'" contenteditable="true"'
+    +' onkeydown="event.stopPropagation();suKey(event,'+id+','+idx+')"'
+    +' onblur="event.stopPropagation();updSuText('+id+','+idx+',this)">'
     +esc(s.t)+'</span>'
-    +'<button class="t-su-del" onclick="event.stopPropagation();delSu('+id+','+idx+')">✕</button>'
+    +'<button class="t-su-del" ontouchstart="event.stopPropagation();event.preventDefault();delSu('+id+','+idx+')" onclick="event.stopPropagation();delSu('+id+','+idx+')">✕</button>'
     +'</div>'
   ).join('');
   updateStats();
@@ -1709,10 +1722,13 @@ function suKey(e,id,i){
     saveData();
     if(sul){
       sul.innerHTML=t.su.map((s,idx)=>
-        '<div class="t-suitem" ontouchstart="event.stopPropagation();" onclick="event.stopPropagation();if(!event.target.classList.contains(\'t-su-del\'))tsu('+id+','+idx+')" >'
-        +'<div class="t-schk'+(s.d?' on':'')+'"></div>'
-        +'<span class="t-stext'+(s.d?' dn':'')+'">'+(s.t?s.t:'')+'</span>'
-        +'<button class="t-su-del" onclick="event.stopPropagation();delSu('+id+','+idx+')">✕</button>'
+        '<div class="t-suitem">'
+        +'<div class="t-schk'+(s.d?' on':'')+'" ontouchstart="event.stopPropagation();event.preventDefault();tsu('+id+','+idx+')" onclick="event.stopPropagation();tsu('+id+','+idx+')"></div>'
+        +'<span class="t-stext'+(s.d?' dn':'')+'" contenteditable="true"'
+        +' onkeydown="event.stopPropagation();suKey(event,'+id+','+idx+')"'
+        +' onblur="event.stopPropagation();updSuText('+id+','+idx+',this)">'
+        +(s.t?s.t:'')+'</span>'
+        +'<button class="t-su-del" ontouchstart="event.stopPropagation();event.preventDefault();delSu('+id+','+idx+')" onclick="event.stopPropagation();delSu('+id+','+idx+')">✕</button>'
         +'</div>'
       ).join('');
       const items=sul.querySelectorAll('.t-stext');
