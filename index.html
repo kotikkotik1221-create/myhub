@@ -1628,6 +1628,7 @@ document.addEventListener('mousedown',function(e){
   if(tag==='BUTTON'||tag==='INPUT'||tag==='TEXTAREA')return;
   if(e.target.isContentEditable)return;
   if(e.target.closest('button')||e.target.closest('[contenteditable]'))return;
+  if(e.target.closest('.t-suitem'))return;
   _expandClickBlock=true;
 },true);
 // ── Inline task expand functions ─────────────────
