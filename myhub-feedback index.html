@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEAD — Обратная связь</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e10;
+    --card: #18181c;
+    --border: #2a2a30;
+    --accent: #e8491e;
+    --accent2: #e8491e;
+    --text: #f0f0f0;
+    --muted: #888;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Onest', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    padding: 0 0 80px;
+    overflow-x: hidden;
+  }
+
+  /* ── header ── */
+  .header {
+    padding: 48px 24px 32px;
+    text-align: center;
+    position: relative;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -60px; left: 50%; transform: translateX(-50%);
+    width: 400px; height: 400px;
+    background: radial-gradient(ellipse at center, rgba(232,73,30,.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .tag {
+    display: inline-block;
+    background: rgba(232,73,30,.12);
+    color: var(--accent);
+    font-family: 'Unbounded', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 100px;
+    border: 1px solid rgba(232,73,30,.25);
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(22px, 6vw, 34px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  h1 span { color: var(--accent); }
+  .subtitle {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+
+  /* ── progress ── */
+  .progress-wrap {
+    padding: 0 24px;
+    margin-bottom: 28px;
+  }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 400;
+  }
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width .4s cubic-bezier(.4,0,.2,1);
+    width: 0%;
+  }
+
+  /* ── cards ── */
+  .form-wrap {
+    padding: 0 16px;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 12px;
+    transition: border-color .2s;
+  }
+  .section.active {
+    border-color: rgba(200,240,74,.35);
+  }
+  .section-num {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: .1em;
+    margin-bottom: 8px;
+  }
+  .section-q {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.45;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+  .section-q .emoji {
+    display: block;
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+
+  /* ── NPS stars ── */
+  .stars {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+  .star-btn {
+    width: 44px; height: 44px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .star-btn:hover, .star-btn.active {
+    background: rgba(200,240,74,.1);
+    border-color: var(--accent);
+    transform: scale(1.08);
+  }
+
+  /* ── satisfaction scale ── */
+  .scale {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .scale-btn {
+    min-width: 40px; height: 40px;
+    padding: 0 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .scale-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .scale-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+  .scale-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── chips ── */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    padding: 8px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 13px;
+    font-family: 'Onest', sans-serif;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--accent2); color: var(--text); }
+  .chip.active {
+    background: rgba(232,73,30,.15);
+    border-color: var(--accent);
+    color: #ff9070;
+  }
+
+  /* ── textarea ── */
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Onest', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 14px;
+    resize: none;
+    outline: none;
+    transition: border-color .2s;
+    min-height: 90px;
+  }
+  textarea:focus { border-color: rgba(200,240,74,.4); }
+  textarea::placeholder { color: var(--muted); }
+
+  /* ── radio ── */
+  .radio-group { display: flex; flex-direction: column; gap: 8px; }
+  .radio-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .radio-item:hover { border-color: var(--accent2); }
+  .radio-item.active {
+    background: rgba(232,73,30,.1);
+    border-color: var(--accent);
+  }
+  .radio-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .radio-item.active .radio-dot {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .radio-item.active .radio-dot::after {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .radio-label { font-size: 14px; color: var(--text); }
+
+  /* ── submit ── */
+  .submit-wrap {
+    padding: 12px 16px 0;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    letter-spacing: .03em;
+    transition: all .2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .submit-btn:hover { background: #f05530; transform: translateY(-1px); }
+  .submit-btn:active { transform: translateY(0); }
+  .submit-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  /* ── thank you ── */
+  .thanks {
+    display: none;
+    text-align: center;
+    padding: 60px 24px;
+    max-width: 400px;
+    margin: 0 auto;
+    animation: fadeUp .5s ease both;
+  }
+  .thanks.show { display: block; }
+  .thanks-ico { font-size: 56px; margin-bottom: 20px; }
+  .thanks h2 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+  .thanks p { color: var(--muted); font-size: 15px; line-height: 1.6; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .form-main { animation: fadeUp .4s ease both; }
+
+  /* divider hint */
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="form-main" id="formMain">
+
+  <div class="header">
+    <div class="tag">Обратная связь</div>
+    <h1>Что думаешь<br>о <span>HEAD</span>?</h1>
+    <p class="subtitle">Займёт 2–3 минуты. Каждый ответ поможет сделать приложение лучше.</p>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-info">
+      <span id="progressLabel">0 / 8</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="form-wrap">
+
+    <!-- 1. Общая оценка -->
+    <div class="section" id="s1">
+      <div class="section-num">01 / 08</div>
+      <div class="section-q"><span class="emoji">⭐</span>Насколько ты доволен(а) приложением в целом?</div>
+      <div class="stars" id="starsGroup">
+        <button class="star-btn" data-v="1" onclick="pick('stars','1')">😞</button>
+        <button class="star-btn" data-v="2" onclick="pick('stars','2')">😕</button>
+        <button class="star-btn" data-v="3" onclick="pick('stars','3')">😐</button>
+        <button class="star-btn" data-v="4" onclick="pick('stars','4')">🙂</button>
+        <button class="star-btn" data-v="5" onclick="pick('stars','5')">🤩</button>
+      </div>
+    </div>
+
+    <!-- 2. NPS -->
+    <div class="section" id="s2">
+      <div class="section-num">02 / 08</div>
+      <div class="section-q"><span class="emoji">📣</span>Насколько вероятно, что ты порекомендуешь HEAD другу?</div>
+      <div class="scale" id="npsGroup">
+        <button class="scale-btn" data-v="0" onclick="pick('nps','0')">0</button>
+        <button class="scale-btn" data-v="1" onclick="pick('nps','1')">1</button>
+        <button class="scale-btn" data-v="2" onclick="pick('nps','2')">2</button>
+        <button class="scale-btn" data-v="3" onclick="pick('nps','3')">3</button>
+        <button class="scale-btn" data-v="4" onclick="pick('nps','4')">4</button>
+        <button class="scale-btn" data-v="5" onclick="pick('nps','5')">5</button>
+        <button class="scale-btn" data-v="6" onclick="pick('nps','6')">6</button>
+        <button class="scale-btn" data-v="7" onclick="pick('nps','7')">7</button>
+        <button class="scale-btn" data-v="8" onclick="pick('nps','8')">8</button>
+        <button class="scale-btn" data-v="9" onclick="pick('nps','9')">9</button>
+        <button class="scale-btn" data-v="10" onclick="pick('nps','10')">10</button>
+      </div>
+      <div class="scale-labels"><span>Точно нет</span><span>Однозначно да</span></div>
+    </div>
+
+    <!-- 3. Что понравилось -->
+    <div class="section" id="s3">
+      <div class="section-num">03 / 08</div>
+      <div class="section-q"><span class="emoji">💚</span>Что показалось удобным или понравилось? <span style="color:var(--muted);font-size:13px">(можно несколько)</span></div>
+      <div class="chips" id="likesGroup">
+        <div class="chip" data-v="tasks" onclick="toggleChip(this,'likes')">Задачи и подзадачи</div>
+        <div class="chip" data-v="calendar" onclick="toggleChip(this,'likes')">Календарь</div>
+        <div class="chip" data-v="folders" onclick="toggleChip(this,'likes')">Папки</div>
+        <div class="chip" data-v="spheres" onclick="toggleChip(this,'likes')">Сферы жизни</div>
+        <div class="chip" data-v="files" onclick="toggleChip(this,'likes')">Хранилище файлов</div>
+        <div class="chip" data-v="design" onclick="toggleChip(this,'likes')">Дизайн и интерфейс</div>
+        <div class="chip" data-v="speed" onclick="toggleChip(this,'likes')">Скорость работы</div>
+        <div class="chip" data-v="telegram" onclick="toggleChip(this,'likes')">Интеграция с Telegram</div>
+        <div class="chip" data-v="offline" onclick="toggleChip(this,'likes')">Работает без интернета</div>
+      </div>
+    </div>
+
+    <!-- 4. Что мешало -->
+    <div class="section" id="s4">
+      <div class="section-num">04 / 08</div>
+      <div class="section-q"><span class="emoji">🔧</span>Что мешало или раздражало? <span style="color:var(--muted);font-size:13px">(можно несколько)</span></div>
+      <div class="chips" id="annoysGroup">
+        <div class="chip" data-v="bugs" onclick="toggleChip(this,'annoys')">Баги и глюки</div>
+        <div class="chip" data-v="slow" onclick="toggleChip(this,'annoys')">Медленно работает</div>
+        <div class="chip" data-v="notobvious" onclick="toggleChip(this,'annoys')">Не очевидно как работать</div>
+        <div class="chip" data-v="missingfeat" onclick="toggleChip(this,'annoys')">Не хватает функций</div>
+        <div class="chip" data-v="design_bad" onclick="toggleChip(this,'annoys')">Дизайн не нравится</div>
+        <div class="chip" data-v="mobile" onclick="toggleChip(this,'annoys')">Неудобно на телефоне</div>
+        <div class="chip" data-v="notifications" onclick="toggleChip(this,'annoys')">Напоминания не работают</div>
+        <div class="chip" data-v="nothing" onclick="toggleChip(this,'annoys')">Всё устраивает</div>
+      </div>
+    </div>
+
+    <!-- 5. Что добавить -->
+    <div class="section" id="s5">
+      <div class="section-num">05 / 08</div>
+      <div class="section-q"><span class="emoji">✨</span>Чего не хватает? Что хотелось бы добавить? <span style="color:var(--muted);font-size:13px">(можно несколько)</span></div>
+      <div class="chips" id="wantGroup">
+        <div class="chip" data-v="widget" onclick="toggleChip(this,'want')">Виджет на экран телефона</div>
+        <div class="chip" data-v="repeat" onclick="toggleChip(this,'want')">Повторяющиеся задачи</div>
+        <div class="chip" data-v="tags" onclick="toggleChip(this,'want')">Теги и метки</div>
+        <div class="chip" data-v="stats" onclick="toggleChip(this,'want')">Статистика и аналитика</div>
+        <div class="chip" data-v="share" onclick="toggleChip(this,'want')">Совместный доступ</div>
+        <div class="chip" data-v="darklight" onclick="toggleChip(this,'want')">Светлая тема</div>
+        <div class="chip" data-v="voice" onclick="toggleChip(this,'want')">Голосовой ввод</div>
+        <div class="chip" data-v="export" onclick="toggleChip(this,'want')">Экспорт данных</div>
+        <div class="chip" data-v="ai" onclick="toggleChip(this,'want')">AI-помощник</div>
+        <div class="chip" data-v="search" onclick="toggleChip(this,'want')">Поиск по задачам</div>
+        <div class="chip" data-v="desktop" onclick="toggleChip(this,'want')">Версия для компьютера</div>
+      </div>
+    </div>
+
+    <!-- 6. Как часто используешь -->
+    <div class="section" id="s6">
+      <div class="section-num">06 / 08</div>
+      <div class="section-q"><span class="emoji">📅</span>Как часто ты используешь MyHub?</div>
+      <div class="radio-group" id="freqGroup">
+        <div class="radio-item" onclick="pickRadio(this,'freq','daily')">
+          <div class="radio-dot"></div>
+          <span class="radio-label">Каждый день</span>
+        </div>
+        <div class="radio-item" onclick="pickRadio(this,'freq','few')">
+          <div class="radio-dot"></div>
+          <span class="radio-label">Несколько раз в неделю</span>
+        </div>
+        <div class="radio-item" onclick="pickRadio(this,'freq','weekly')">
+          <div class="radio-dot"></div>
+          <span class="radio-label">Раз в неделю</span>
+        </div>
+        <div class="radio-item" onclick="pickRadio(this,'freq','rarely')">
+          <div class="radio-dot"></div>
+          <span class="radio-label">Редко заходил(а)</span>
+        </div>
+        <div class="radio-item" onclick="pickRadio(this,'freq','once')">
+          <div class="radio-dot"></div>
+          <span class="radio-label">Открыл(а) один раз</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Свободный комментарий -->
+    <div class="section" id="s7">
+      <div class="section-num">07 / 07</div>
+      <div class="section-q"><span class="emoji">💬</span>Есть что-то важное, что хочешь сказать? Баг, идея, пожелание — всё сюда.</div>
+      <textarea id="commentText" placeholder="Пиши свободно, всё читаю лично…" oninput="updateProgress()"></textarea>
+    </div>
+
+  </div><!-- /form-wrap -->
+
+  <div class="submit-wrap">
+    <button class="submit-btn" id="submitBtn" onclick="submitForm()">Отправить отзыв →</button>
+  </div>
+
+</div>
+
+<!-- Thank you -->
+<div class="thanks" id="thanksScreen">
+  <div class="thanks-ico">🎉</div>
+  <h2>Спасибо большое!</h2>
+  <p>Твой отзыв уже у меня. Это реально помогает делать HEAD лучше для всех.</p>
+</div>
+
+<script>
+  const answers = {
+    stars: null,
+    nps: null,
+    likes: [],
+    annoys: [],
+    want: [],
+    freq: null,
+    comment: ''
+  };
+
+  const TOTAL = 7;
+
+  function pick(group, val) {
+    answers[group] = val;
+    document.querySelectorAll(`#${group}Group .star-btn, #${group}Group .scale-btn`).forEach(b => {
+      b.classList.toggle('active', b.dataset.v === val);
+    });
+    document.getElementById('s' + (group === 'stars' ? 1 : 2)).classList.add('active');
+    updateProgress();
+  }
+
+  function toggleChip(el, group) {
+    const v = el.dataset.v;
+    el.classList.toggle('active');
+    if (el.classList.contains('active')) {
+      if (!answers[group].includes(v)) answers[group].push(v);
+    } else {
+      answers[group] = answers[group].filter(x => x !== v);
+    }
+    // Если выбрали "всё устраивает" — снять остальные
+    if (group === 'annoys' && v === 'nothing' && el.classList.contains('active')) {
+      document.querySelectorAll('#annoysGroup .chip').forEach(c => {
+        if (c.dataset.v !== 'nothing') { c.classList.remove('active'); }
+      });
+      answers.annoys = ['nothing'];
+    } else if (group === 'annoys' && v !== 'nothing') {
+      const nothingChip = document.querySelector('#annoysGroup .chip[data-v="nothing"]');
+      if (nothingChip) { nothingChip.classList.remove('active'); answers.annoys = answers.annoys.filter(x => x !== 'nothing'); }
+    }
+    const sIdx = group === 'likes' ? 3 : group === 'annoys' ? 4 : 5;
+    if (answers[group].length > 0) document.getElementById('s' + sIdx).classList.add('active');
+    updateProgress();
+  }
+
+  const radioState = {};
+  function pickRadio(el, group, val) {
+    radioState[group] = val;
+    answers[group] = val;
+    el.closest('.radio-group').querySelectorAll('.radio-item').forEach(r => r.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('s6').classList.add('active');
+    updateProgress();
+  }
+
+  function countFilled() {
+    let n = 0;
+    if (answers.stars) n++;
+    if (answers.nps !== null) n++;
+    if (answers.likes.length > 0) n++;
+    if (answers.annoys.length > 0) n++;
+    if (answers.want.length > 0) n++;
+    if (answers.freq) n++;
+    if (document.getElementById('commentText').value.trim()) n++;
+    return n;
+  }
+
+  function updateProgress() {
+    answers.comment = document.getElementById('commentText').value.trim();
+    const filled = countFilled();
+    const pct = Math.round((filled / TOTAL) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = filled + ' / ' + TOTAL;
+    document.getElementById('progressPct').textContent = pct + '%';
+  }
+
+  // ← ВСТАВЬ СЮДА URL СВОЕГО ВОРКЕРА
+  const WORKER_URL = 'https://bold-lab-3941myhub-feedback.kotikkotik1221.workers.dev/';
+
+  async function submitForm() {
+    answers.comment = document.getElementById('commentText').value.trim();
+    answers.contact = document.getElementById('contactText') ? document.getElementById('contactText').value.trim() : '';
+
+    if (!answers.stars && answers.nps === null) {
+      document.getElementById('s1').style.borderColor = 'rgba(255,80,80,.5)';
+      document.getElementById('s1').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Отправляю…';
+
+    const starsMap  = {'1':'😞','2':'😕','3':'😐','4':'🙂','5':'🤩'};
+    const likesMap  = {tasks:'Задачи',calendar:'Календарь',folders:'Папки',spheres:'Сферы',files:'Файлы',design:'Дизайн',speed:'Скорость',telegram:'Telegram',offline:'Офлайн'};
+    const annoysMap = {bugs:'Баги',slow:'Медленно',notobvious:'Непонятно',missingfeat:'Мало функций',design_bad:'Дизайн',mobile:'Неудобно на телефоне',notifications:'Напоминания',nothing:'Всё устраивает'};
+    const wantMap   = {widget:'Виджет',repeat:'Повторы',tags:'Теги',stats:'Статистика',share:'Совместный доступ',darklight:'Светлая тема',voice:'Голос',export:'Экспорт',ai:'AI',search:'Поиск',desktop:'Десктоп'};
+    const freqMap   = {daily:'Каждый день',few:'Несколько раз в неделю',weekly:'Раз в неделю',rarely:'Редко',once:'Один раз'};
+
+    const text = [
+      '🗂 *Новый отзыв MyHub*',
+      '📅 ' + new Date().toLocaleString('ru'),
+      '',
+      '⭐ Оценка: ' + (starsMap[answers.stars] || '—'),
+      '📣 NPS: ' + (answers.nps !== null ? answers.nps + '/10' : '—'),
+      '',
+      '💚 Понравилось: ' + (answers.likes.map(x=>likesMap[x]||x).join(', ') || '—'),
+      '🔧 Раздражало: ' + (answers.annoys.map(x=>annoysMap[x]||x).join(', ') || '—'),
+      '✨ Хочет добавить: ' + (answers.want.map(x=>wantMap[x]||x).join(', ') || '—'),
+      '',
+      '📅 Частота: ' + (freqMap[answers.freq] || '—'),
+      '💬 Комментарий: ' + (answers.comment || '—'),
+      '📩 Контакт: ' + (answers.contact || '—'),
+    ].join('\n');
+
+    try {
+      await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+    } catch(e) {
+      console.error('Ошибка отправки:', e);
+    }
+
+    document.getElementById('formMain').style.display = 'none';
+    document.getElementById('thanksScreen').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // init progress
+  updateProgress();
+</script>
+</body>
+</html>
