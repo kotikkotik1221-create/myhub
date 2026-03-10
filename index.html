@@ -1508,28 +1508,41 @@ function saveData() {
   if(_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(_doSave, 300);
 }
+function _getUserId() {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  return user ? String(user.id) : null;
+}
 function _doSave() {
-  // Сохраняем всё КРОМЕ dataUrl — только метаданные файлов
+  const userId = _getUserId();
+  if (!userId) {
+    // Fallback на localStorage если нет TG (десктоп-браузер)
+    try { localStorage.setItem(STORAGE_KEY, _buildPayload()); } catch(e) {}
+    return;
+  }
+  fetch(WORKER_URL + '/data', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ userId, data: _buildPayload() })
+  }).catch(() => {
+    // Fallback на localStorage при ошибке сети
+    try { localStorage.setItem(STORAGE_KEY, _buildPayload()); } catch(e) {}
+  });
+}
+function _buildPayload() {
   const filesMeta = D.files.map(f => ({
     id:f.id, fid:f.fid, name:f.name, origName:f.origName,
     size:f.size, mtype:f.mtype, dt:f.dt
   }));
-  const payload = JSON.stringify({
+  return JSON.stringify({
     tasks: D.tasks, future: D.future, folders: D.folders, notes: D.notes,
     res: D.res, spheres: D.spheres, id: D.id, files: filesMeta
   });
-  if (TG && TG.CloudStorage) {
-    TG.CloudStorage.setItem(STORAGE_KEY, payload);
-  } else {
-    try { localStorage.setItem(STORAGE_KEY, payload); } catch(e) {}
-  }
 }
-
 
 function loadData(cb) {
   const applyAndLoadFiles = (raw) => {
     if (raw) _applyStored(raw);
-    // Загружаем dataUrl из IndexedDB и прикрепляем к метаданным
     idbLoadAllFiles(idbFiles => {
       const map = {};
       idbFiles.forEach(f => { map[f.id] = f.dataUrl; });
@@ -1537,15 +1550,18 @@ function loadData(cb) {
       cb();
     });
   };
-  if (TG && TG.CloudStorage) {
-    TG.CloudStorage.getItem(STORAGE_KEY, (err, val) => {
-      applyAndLoadFiles(!err && val && val.trim() ? val : null);
-    });
+
+  const userId = _getUserId();
+  if (userId) {
+    fetch(WORKER_URL + '/data?userId=' + userId)
+      .then(r => r.json())
+      .then(d => applyAndLoadFiles(d.data || null))
+      .catch(() => {
+        // Fallback на localStorage
+        try { applyAndLoadFiles(localStorage.getItem(STORAGE_KEY)); } catch(e) { applyAndLoadFiles(null); }
+      });
   } else {
-    try {
-      const val = localStorage.getItem(STORAGE_KEY);
-      applyAndLoadFiles(val);
-    } catch(e) { applyAndLoadFiles(null); }
+    try { applyAndLoadFiles(localStorage.getItem(STORAGE_KEY)); } catch(e) { applyAndLoadFiles(null); }
   }
 }
 
