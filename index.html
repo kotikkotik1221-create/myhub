@@ -1420,19 +1420,20 @@ if (TG) {
     if (TG.safeAreaInsets && TG.safeAreaInsets.top > 0) {
       top = TG.safeAreaInsets.top;
     }
-    // Способ 2: CSS переменная которую TG проставляет сам
+    // Способ 2: CSS переменная
     if (!top) {
       const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tg-safe-area-inset-top'));
       if (v > 0) top = v;
     }
-    // Способ 3: contentSafeAreaInsets (TG 8.x)
+    // Способ 3: contentSafeAreaInsets
     if (!top && TG.contentSafeAreaInsets && TG.contentSafeAreaInsets.top > 0) {
       top = TG.contentSafeAreaInsets.top;
     }
-    // Fallback: стандартная высота кнопки "Закрыть" в TG fullscreen
+    // Fallback
     if (!top) top = 56;
 
-    document.querySelector('.hdr').style.paddingTop = (top + 18) + 'px';
+    // Добавляем высоту панели TG с кнопкой Закрыть (~48px) + базовый паддинг
+    document.querySelector('.hdr').style.paddingTop = (top + 48 + 18) + 'px';
   }
 
   applyHeaderOffset();
@@ -1441,6 +1442,18 @@ if (TG) {
   TG.onEvent && TG.onEvent('contentSafeAreaChanged', applyHeaderOffset);
   TG.onEvent && TG.onEvent('viewportChanged', applyHeaderOffset);
 }
+
+setTimeout(() => {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:#fff;font-size:11px;padding:4px 6px;z-index:9999;line-height:1.6';
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const sa = (tg && tg.safeAreaInsets) || {};
+  const cs = (tg && tg.contentSafeAreaInsets) || {};
+  const cssV = getComputedStyle(document.documentElement).getPropertyValue('--tg-safe-area-inset-top').trim();
+  const hdrPt = (document.querySelector('.hdr')||{}).style&&document.querySelector('.hdr').style.paddingTop;
+  d.textContent = `sa=${sa.top??'-'} cs=${cs.top??'-'} css=${cssV||'-'} pt=${hdrPt} exp=${tg&&tg.isExpanded}`;
+  document.body.appendChild(d);
+}, 600);
 
 
 
