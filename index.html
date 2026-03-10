@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Мой Штаб</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -378,7 +378,7 @@ body{
 
 /* ── HEADER ── */
 .hdr{
-  padding:18px 20px 8px;
+  padding:calc(env(safe-area-inset-top, 0px) + 18px) 20px 8px;
   display:flex;align-items:center;justify-content:space-between;
 }
 .hdr-left{flex:1;}
