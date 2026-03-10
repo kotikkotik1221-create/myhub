@@ -1414,26 +1414,14 @@ if (TG) {
   TG.expand();
 
   function applyHeaderOffset() {
-    let top = 0;
-
-    // Способ 1: новый API (TG 7.x+)
-    if (TG.safeAreaInsets && TG.safeAreaInsets.top > 0) {
-      top = TG.safeAreaInsets.top;
-    }
-    // Способ 2: CSS переменная
-    if (!top) {
-      const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tg-safe-area-inset-top'));
-      if (v > 0) top = v;
-    }
-    // Способ 3: contentSafeAreaInsets
-    if (!top && TG.contentSafeAreaInsets && TG.contentSafeAreaInsets.top > 0) {
-      top = TG.contentSafeAreaInsets.top;
-    }
-    // Fallback
-    if (!top) top = 56;
-
-    // Добавляем высоту панели TG с кнопкой Закрыть (~48px) + базовый паддинг
-    document.querySelector('.hdr').style.paddingTop = (top + 48 + 18) + 'px';
+    const tg = window.Telegram && window.Telegram.WebApp;
+    const cssTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tg-safe-area-inset-top')) || 0;
+    const saTop = (tg && tg.safeAreaInsets && tg.safeAreaInsets.top) || 0;
+    const top = Math.max(cssTop, saTop);
+    // Когда css=0 — только кнопка TG (~86px базовый отступ)
+    // Когда css>0 — системная строка уже учтена в top, добавляем только кнопку TG (~48px)
+    const extra = top > 0 ? 48 : 86;
+    document.querySelector('.hdr').style.paddingTop = (top + extra) + 'px';
   }
 
   applyHeaderOffset();
