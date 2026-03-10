@@ -5,6 +5,80 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Мой Штаб</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- ── SENSORCORE ANALYTICS (встроенный клиент, без внешних зависимостей) ── -->
+<script>
+(function(){
+  var SC_API_KEY = '837285a0-675b-4731-9288-81884516565d';
+  var SC_HOST    = 'https://api.sensorcore.dev';
+  var _userId    = 'anon';
+
+  // Очередь на случай если логи вызваны до инициализации
+  var _queue = [];
+  var _ready = false;
+
+  function _send(message, opts){
+    opts = opts || {};
+    var body = {
+      message:  message,
+      level:    opts.level    || 'info',
+      userId:   opts.userId   || _userId,
+      metadata: opts.metadata || {}
+    };
+    try {
+      fetch(SC_HOST + '/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': SC_API_KEY },
+        body: JSON.stringify(body),
+        keepalive: true
+      });
+    } catch(e) {}
+  }
+
+  function _flush(){
+    _queue.forEach(function(item){ _send(item.msg, item.opts); });
+    _queue = [];
+  }
+
+  // Публичный интерфейс — совместим с window.SensorCore
+  window.SensorCore = {
+    log: function(msg, opts){
+      if(_ready) _send(msg, opts);
+      else _queue.push({msg: msg, opts: opts});
+    }
+  };
+
+  // Инициализация после загрузки Telegram SDK
+  function init(){
+    var tg = window.Telegram && window.Telegram.WebApp;
+    var user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+    _userId = user ? String(user.id) : 'anon';
+    _ready = true;
+    _flush();
+
+    SensorCore.log('app_opened', {
+      level: 'info',
+      metadata: {
+        user_id:  _userId,
+        username: user ? (user.username || user.first_name || 'unknown') : 'anon',
+        platform: (tg && tg.platform) || 'unknown',
+        theme:    document.documentElement.getAttribute('data-theme') || 'light'
+      }
+    });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+function scLog(event, meta){
+  try { window.SensorCore && window.SensorCore.log(event, {level:'info', metadata: meta||{}}); } catch(e){}
+}
+</script>
+
 <script>
 
 // ── REMIND ──
@@ -80,6 +154,7 @@ async function saveRemind(){
     if(data.ok){
       cm2('remindModal');
       toast('Напоминание включено на ' + _remindTime + ' 🔔');
+      scLog('reminder_set', {time: _remindTime});
     } else {
       toast('Ошибка: ' + (data.error || 'попробуй позже'));
     }
@@ -102,6 +177,7 @@ async function disableRemind(){
     });
     cm2('remindModal');
     toast('Напоминание отключено');
+    scLog('reminder_disabled');
   } catch(e) {
     toast('Ошибка соединения');
   }
@@ -117,6 +193,7 @@ function openDonate(){
   document.getElementById('donateError').textContent = '';
   document.querySelectorAll('.donate-amt').forEach((el,i) => el.classList.toggle('sel', i===0));
   document.getElementById('donateModal').classList.add('on');
+  scLog('donate_opened');
 }
 
 function selectAmt(el, amt){
@@ -175,8 +252,8 @@ async function sendDonate(){
 
     if(tg && tg.openInvoice){
       tg.openInvoice(data.result, status => {
-        if(status === 'paid') toast('Огромное спасибо! ⭐🙏');
-        else if(status === 'failed') toast('Платёж не прошёл');
+        if(status === 'paid') { toast('Огромное спасибо! ⭐🙏'); scLog('donate_paid', {amount: _donateAmt, currency: 'stars'}); }
+        else if(status === 'failed') { toast('Платёж не прошёл'); scLog('donate_failed', {amount: _donateAmt}); }
       });
     } else {
       window.open(data.result, '_blank');
@@ -189,21 +266,46 @@ async function sendDonate(){
   }
 }
 
-// ── Keyboard / visualViewport fix for TG Mini App ──
-if(window.visualViewport){
-  window.visualViewport.addEventListener('resize',()=>{
-    const vh=window.visualViewport.height;
-    document.querySelectorAll('.ov.on').forEach(el=>{
-      el.style.height=vh+'px';
-    });
-  });
-  window.visualViewport.addEventListener('scroll',()=>{
-    const offset=window.visualViewport.offsetTop;
-    document.querySelectorAll('.ov.on').forEach(el=>{
-      el.style.top=offset+'px';
-    });
+// ── Keyboard / visualViewport fix for TG Mini App (iOS) ──
+function _applyVPFix(){
+  if(!window.visualViewport) return;
+  const vv = window.visualViewport;
+  const top    = Math.round(vv.offsetTop);
+  const left   = Math.round(vv.offsetLeft);
+  const width  = Math.round(vv.width);
+  const height = Math.round(vv.height);
+  document.querySelectorAll('.ov.on').forEach(function(el){
+    el.style.top    = top    + 'px';
+    el.style.left   = left   + 'px';
+    el.style.width  = width  + 'px';
+    el.style.height = height + 'px';
   });
 }
+function _resetVPFix(el){
+  if(!el) return;
+  el.style.top = el.style.left = el.style.width = el.style.height = '';
+}
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', _applyVPFix);
+  window.visualViewport.addEventListener('scroll', _applyVPFix);
+}
+// Следим за открытием/закрытием модалок через MutationObserver
+(function(){
+  var mo = new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      if(m.type==='attributes' && m.attributeName==='class'){
+        var el = m.target;
+        if(el.classList.contains('ov')){
+          if(el.classList.contains('on')) requestAnimationFrame(_applyVPFix);
+          else _resetVPFix(el);
+        }
+      }
+    });
+  });
+  document.addEventListener('DOMContentLoaded', function(){
+    mo.observe(document.body, {attributes:true, subtree:true, attributeFilter:['class']});
+  });
+})();
 </script>
 <style>
 /* ══════════════════════════════════════════════
@@ -639,10 +741,13 @@ body{
 
 /* ── MODALS ── */
 .ov{
-  position:fixed;inset:0;
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;   /* fallback */
   background:rgba(0,0,0,.35);
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
   z-index:150;display:none;align-items:flex-end;
+  /* не используем inset, чтобы JS мог корректировать при появлении клавиатуры */
+  will-change:top,height;
 }
 .ov.on{display:flex;}
 .modal{
@@ -1401,7 +1506,7 @@ function loadData(cb) {
   };
   if (TG && TG.CloudStorage) {
     TG.CloudStorage.getItem(STORAGE_KEY, (err, val) => {
-      applyAndLoadFiles(!err && val ? val : null);
+      applyAndLoadFiles(!err && val && val.trim() ? val : null);
     });
   } else {
     try {
@@ -1519,7 +1624,12 @@ function _attachSwipeEl(el) {
   swBtn.addEventListener('click', e => {
     e.stopPropagation();
     _swClose(ctx, false);
-    (new Function(deleteAction))();
+    // Safe dispatch: read type/id from data-attributes, no eval/new Function
+    const type = delBtn.dataset.delType;
+    const id   = delBtn.dataset.delId;
+    if (type && id !== undefined) {
+      cd(type, isNaN(Number(id)) ? id : Number(id));
+    }
   });
 
   let sx, sy, ox, dragging, dir;
@@ -1638,14 +1748,14 @@ function th(t){
     +'</div>'
     +'<div class="tacts">'
     +'<button class="ibtn" onclick="event.stopPropagation();otm('+t.id+')" title="Редактировать">✏️</button>'
-    +'<button class="ibtn d" onclick="event.stopPropagation();cd(\'task\','+t.id+')" title="Удалить">🗑</button>'
+    +'<button class="ibtn d" data-del-type="task" data-del-id="'+t.id+'" onclick="event.stopPropagation();cd(\'task\','+t.id+')" title="Удалить">🗑</button>'
     +'</div>'
     +'</div>'
     +expand
     +'</div>';
 }
 
-function tt(id){const t=D.tasks.find(t=>t.id===id);if(t){t.dn=!t.dn;saveData();}rtasks();renderCal();if(CAL.selDate)renderDayPanel(CAL.selDate);}
+function tt(id){const t=D.tasks.find(t=>t.id===id);if(t){t.dn=!t.dn;saveData();scLog(t.dn?'task_completed':'task_uncompleted',{priority:t.pr,sphere:t.sp});}rtasks();renderCal();if(CAL.selDate)renderDayPanel(CAL.selDate);}
 function tsu(tid,i){
   const t=D.tasks.find(t=>t.id===tid);
   if(!t)return;
@@ -1794,7 +1904,7 @@ function suKey(e,id,i){
         +'<span class="t-stext'+(s.d?' dn':'')+'" contenteditable="true"'
         +' onkeydown="event.stopPropagation();suKey(event,'+id+','+idx+')"'
         +' onblur="event.stopPropagation();updSuText('+id+','+idx+',this)">'
-        +(s.t?s.t:'')+'</span>'
+        +(s.t?esc(s.t):'')+'</span>'
         +'<button class="t-su-del" ontouchstart="event.stopPropagation();event.preventDefault();delSu('+id+','+idx+')" onclick="event.stopPropagation();delSu('+id+','+idx+')">✕</button>'
         +'</div>'
       ).join('');
@@ -1842,7 +1952,8 @@ function renderSpheres(){
   function makeChip(s){
     const isOn=D.tf===s;
     const es=esc(s);
-    return `<div class="sph-chip${isOn?' on':''}"><span onclick='ft("${es}")' style='cursor:pointer;flex:1'>${es}</span><button class="sph-chip-del" onclick='event.stopPropagation();delSphere("${es}")'>✕</button></div>`;
+    const js=JSON.stringify(s);
+    return `<div class="sph-chip${isOn?' on':''}"><span onclick='ft(${js})' style='cursor:pointer;flex:1'>${es}</span><button class="sph-chip-del" onclick='event.stopPropagation();delSphere(${js})'>✕</button></div>`;
   }
 
   let html=`<div class="sph-chip${D.tf==='all'?' on':''}" onclick="ft('all')">Все</div>`;
@@ -1854,7 +1965,8 @@ function renderSpheres(){
 
   dd.innerHTML=hidden.map(function(s){
     const es=esc(s);
-    return `<div class="sph-dd-item${D.tf===s?' on':''}"><span onclick='ft("${es}");closeSphDD()' style='flex:1;cursor:pointer'>${es}</span><button class="sph-dd-del" onclick='event.stopPropagation();delSphere("${es}")'>✕</button></div>`;
+    const js=JSON.stringify(s);
+    return `<div class="sph-dd-item${D.tf===s?' on':''}"><span onclick='ft(${js});closeSphDD()' style='flex:1;cursor:pointer'>${es}</span><button class="sph-dd-del" onclick='event.stopPropagation();delSphere(${js})'>✕</button></div>`;
   }).join('');
 
   const sel=document.getElementById('tsp');
@@ -1934,8 +2046,8 @@ function svt(){
   const title=document.getElementById('tt').value.trim();if(!title)return;
   const suRaw=document.getElementById('tsu').value.trim();
   const sa=suRaw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
-  if(D.etid!==null){const t=D.tasks.find(t=>t.id===D.etid);t.title=title;t.sp=document.getElementById('tsp').value;t.pr=document.getElementById('tpr').value;t.dl=document.getElementById('tdl').value;t.desc=document.getElementById('tdesc').value.trim();t.su=sa.map(tx=>{const ex=t.su.find(s=>s.t===tx);return ex||{t:tx,d:false};});}
-  else{D.tasks.unshift({id:D.id++,title,sp:document.getElementById('tsp').value,pr:document.getElementById('tpr').value,dl:document.getElementById('tdl').value,dn:false,desc:document.getElementById('tdesc').value.trim(),su:sa.map(t=>({t,d:false}))});}
+  if(D.etid!==null){const t=D.tasks.find(t=>t.id===D.etid);t.title=title;t.sp=document.getElementById('tsp').value;t.pr=document.getElementById('tpr').value;t.dl=document.getElementById('tdl').value;t.desc=document.getElementById('tdesc').value.trim();t.su=sa.map(tx=>{const ex=t.su.find(s=>s.t===tx);return ex||{t:tx,d:false};});scLog('task_edited',{priority:t.pr,sphere:t.sp,has_deadline:!!t.dl});}
+  else{const newTask={id:D.id++,title,sp:document.getElementById('tsp').value,pr:document.getElementById('tpr').value,dl:document.getElementById('tdl').value,dn:false,desc:document.getElementById('tdesc').value.trim(),su:sa.map(t=>({t,d:false}))};D.tasks.unshift(newTask);scLog('task_added',{priority:newTask.pr,sphere:newTask.sp,has_deadline:!!newTask.dl,has_subtasks:sa.length>0});}
   D._calAddKey=null;
   saveData();
   cm2('tm');
@@ -1969,7 +2081,7 @@ function rfolders(){
           <div class="fcnt">${esc(countTxt)}</div>
         </div>
         <div class="tacts" onclick="event.stopPropagation()">
-          <button class="ibtn d" onclick="cd('folder','${f.id}')" title="Удалить папку">🗑</button>
+          <button class="ibtn d" data-del-type="folder" data-del-id="${f.id}" onclick="cd('folder','${f.id}')" title="Удалить папку">🗑</button>
         </div>
         <div class="farr">▸</div>
       </div>
@@ -1991,7 +2103,7 @@ function noteListHTML(fid, notes, c){
         ${n.body?`<div class="nrprev">${esc(n.body.slice(0,60))}${n.body.length>60?'…':''}</div>`:''}
       </div>
       <div class="tacts">
-        <button class="ibtn d" onclick="cd('note','${n.id}')">🗑</button>
+        <button class="ibtn d" data-del-type="note" data-del-id="${n.id}" onclick="cd('note','${n.id}')">🗑</button>
       </div>
     </div>`).join('')+
     `<button class="naddbtn" onclick="onm('${fid}')">+ Новая заметка</button>`;
@@ -2012,7 +2124,7 @@ function fileListHTML(fid, files, c){
         <div class="file-meta">${esc(f.origName)} · ${esc(sizeStr)} · ${fd(f.dt)}</div>
       </div>
       ${(isImg||ext==='pdf')?`<button class="file-dl-btn" onclick="openFile('${f.id}')">👁 Открыть</button>`:''}<button class="file-dl-btn" onclick="downloadFile('${f.id}')">⬆ Поделиться</button>
-      <button class="ibtn d" onclick="cd('file','${f.id}')" style="flex-shrink:0">🗑</button>
+      <button class="ibtn d" data-del-type="file" data-del-id="${f.id}" onclick="cd('file','${f.id}')" style="flex-shrink:0">🗑</button>
     </div>`;
   }).join('')+
   `<button class="naddbtn" onclick="openFileUpload('${fid}')">📎 Загрузить файл</button>`;
@@ -2103,6 +2215,8 @@ function uploadFile(){
 function openFile(fid){
   const f=D.files.find(x=>x.id===fid);
   if(!f||!f.dataUrl)return;
+  // Security: only allow data: URLs in viewer
+  if(!f.dataUrl.startsWith('data:'))return;
   const ext=(f.origName||'').split('.').pop().toLowerCase();
   const isImg=['png','jpg','jpeg','gif','webp'].includes(ext);
   const body=document.getElementById('fviewer-body');
@@ -2218,7 +2332,7 @@ function rres(){
       </a>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
         <span class="rtag">${esc(r.cat)}</span>
-        <div class="tacts"><button class="ibtn" onclick="orm('${r.id}')" title="Редактировать">✏️</button><button class="ibtn d" onclick="cd('res','${r.id}')">🗑</button></div>
+        <div class="tacts"><button class="ibtn" onclick="orm('${r.id}')" title="Редактировать">✏️</button><button class="ibtn d" data-del-type="res" data-del-id="${r.id}" onclick="cd('res','${r.id}')">🗑</button></div>
       </div>
     </div>`;
   }).join(''):'<div class="empty"><div class="eico">🔗</div><div class="etxt">Нет ресурсов</div></div>';
@@ -2258,11 +2372,11 @@ function c2(txt,cb){document.getElementById('cft').textContent=txt;document.getE
 function cd(type,id,fn){
   const l={task:'задачу',folder:'папку и всё содержимое',note:'заметку',res:'ресурс',file:'файл'};
   c2('Удалить '+l[type]+'?',()=>{
-    if(type==='task'){D.tasks=D.tasks.filter(t=>t.id!==id);saveData();rtasks();renderCal();if(CAL.selDate)renderDayPanel(CAL.selDate);}
-    if(type==='folder'){const fids=D.files.filter(f=>f.fid===id).map(f=>f.id);fids.forEach(fid2=>idbDeleteFile(fid2));D.notes=D.notes.filter(n=>n.fid!==id);D.files=D.files.filter(f=>f.fid!==id);D.folders=D.folders.filter(f=>f.id!==id);saveData();rfolders();}
-    if(type==='note'){D.notes=D.notes.filter(n=>n.id!==id);saveData();if(fn)cn();else rfolders();}
-    if(type==='file'){D.files=D.files.filter(f=>f.id!==id);idbDeleteFile(id);saveData();rfolders();}
-    if(type==='res'){D.res=D.res.filter(r=>r.id!==id);saveData();rres();}
+    if(type==='task'){D.tasks=D.tasks.filter(t=>t.id!==id);saveData();rtasks();renderCal();if(CAL.selDate)renderDayPanel(CAL.selDate);scLog('task_deleted');}
+    if(type==='folder'){const fids=D.files.filter(f=>f.fid===id).map(f=>f.id);fids.forEach(fid2=>idbDeleteFile(fid2));D.notes=D.notes.filter(n=>n.fid!==id);D.files=D.files.filter(f=>f.fid!==id);D.folders=D.folders.filter(f=>f.id!==id);saveData();rfolders();scLog('folder_deleted');}
+    if(type==='note'){D.notes=D.notes.filter(n=>n.id!==id);saveData();if(fn)cn();else rfolders();scLog('note_deleted');}
+    if(type==='file'){D.files=D.files.filter(f=>f.id!==id);idbDeleteFile(id);saveData();rfolders();scLog('file_deleted');}
+    if(type==='res'){D.res=D.res.filter(r=>r.id!==id);saveData();rres();scLog('resource_deleted');}
   });
 }
 function cm2(id){document.getElementById(id).classList.remove('on');}
@@ -2390,7 +2504,7 @@ function saveFuture(){
   inp.value='';
 }
 
-function sw(tab,el){document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));document.getElementById('S-'+tab).classList.add('on');document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));el.classList.add('on');}
+function sw(tab,el){document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));document.getElementById('S-'+tab).classList.add('on');document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));el.classList.add('on');scLog('tab_switched',{tab:tab});}
 function fd(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'short'});}
 
 // ── CALENDAR ────────────────────────────────────────────────────────────
@@ -2546,6 +2660,7 @@ function toggleTheme() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const next = !isDark;
   applyTheme(next);
+  scLog('theme_toggled', {theme: next ? 'dark' : 'light'});
   try { localStorage.setItem(THEME_KEY, next ? 'dark' : 'light'); } catch(e) {}
 }
 
