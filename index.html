@@ -378,7 +378,7 @@ body{
 
 /* ── HEADER ── */
 .hdr{
-  padding:calc(env(safe-area-inset-top, 0px) + 18px) 20px 8px;
+  padding:18px 20px 8px;
   display:flex;align-items:center;justify-content:space-between;
 }
 .hdr-left{flex:1;}
@@ -1409,7 +1409,23 @@ body{
 <script>
 // ── Telegram WebApp init ──────────────────────────────────────────────────
 const TG = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-if (TG) { TG.ready(); TG.expand(); }
+if (TG) {
+  TG.ready();
+  TG.expand();
+  function applyTgInsets() {
+    const cs = getComputedStyle(document.documentElement);
+    // tg-safe-area-inset-top — высота панели с кнопкой "Закрыть"
+    const safeTop = parseFloat(cs.getPropertyValue('--tg-safe-area-inset-top')) || 0;
+    const contentTop = parseFloat(cs.getPropertyValue('--tg-content-safe-area-inset-top')) || 0;
+    const offset = Math.max(safeTop, contentTop);
+    // Fallback: если TG не вернул инсеты — ставим 52px (высота кнопки Закрыть)
+    document.querySelector('.hdr').style.paddingTop = ((offset || 52) + 18) + 'px';
+  }
+  // Ждём пока TG проставит переменные
+  setTimeout(applyTgInsets, 50);
+  TG.onEvent('safeAreaChanged', applyTgInsets);
+  TG.onEvent('contentSafeAreaChanged', applyTgInsets);
+}
 
 // ── Security: HTML escape for all user-generated content ─────────────────
 const ESC_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
