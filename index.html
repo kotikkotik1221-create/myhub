@@ -1432,13 +1432,14 @@ if (TG) {
     // Fallback: стандартная высота кнопки "Закрыть" в TG fullscreen
     if (!top) top = 56;
 
-    document.querySelector('.hdr').style.paddingTop = (top + 50) + 'px';
+    document.querySelector('.hdr').style.paddingTop = (top + 18) + 'px';
   }
 
   applyHeaderOffset();
   setTimeout(applyHeaderOffset, 100);
   TG.onEvent && TG.onEvent('safeAreaChanged', applyHeaderOffset);
   TG.onEvent && TG.onEvent('contentSafeAreaChanged', applyHeaderOffset);
+  TG.onEvent && TG.onEvent('viewportChanged', applyHeaderOffset);
 }
 
 
