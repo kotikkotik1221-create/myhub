@@ -1412,19 +1412,44 @@ const TG = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp 
 if (TG) {
   TG.ready();
   TG.expand();
-  function applyTgInsets() {
-    const cs = getComputedStyle(document.documentElement);
-    // tg-safe-area-inset-top — высота панели с кнопкой "Закрыть"
-    const safeTop = parseFloat(cs.getPropertyValue('--tg-safe-area-inset-top')) || 0;
-    const contentTop = parseFloat(cs.getPropertyValue('--tg-content-safe-area-inset-top')) || 0;
-    const offset = Math.max(safeTop, contentTop);
-    // Fallback: если TG не вернул инсеты — ставим 52px (высота кнопки Закрыть)
-    document.querySelector('.hdr').style.paddingTop = ((offset || 52) + 18) + 'px';
+
+  function applyHeaderOffset() {
+    let top = 0;
+
+    // Способ 1: новый API (TG 7.x+)
+    if (TG.safeAreaInsets && TG.safeAreaInsets.top > 0) {
+      top = TG.safeAreaInsets.top;
+    }
+    // Способ 2: CSS переменная которую TG проставляет сам
+    if (!top) {
+      const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tg-safe-area-inset-top'));
+      if (v > 0) top = v;
+    }
+    // Способ 3: contentSafeAreaInsets (TG 8.x)
+    if (!top && TG.contentSafeAreaInsets && TG.contentSafeAreaInsets.top > 0) {
+      top = TG.contentSafeAreaInsets.top;
+    }
+    // Fallback: стандартная высота кнопки "Закрыть" в TG fullscreen
+    if (!top) top = 56;
+
+    document.querySelector('.hdr').style.paddingTop = (top + 12) + 'px';
   }
-  // Ждём пока TG проставит переменные
-  setTimeout(applyTgInsets, 50);
-  TG.onEvent('safeAreaChanged', applyTgInsets);
-  TG.onEvent('contentSafeAreaChanged', applyTgInsets);
+
+  applyHeaderOffset();
+  setTimeout(applyHeaderOffset, 100); // повтор после полной инициализации TG
+  TG.onEvent && TG.onEvent('safeAreaChanged', applyHeaderOffset);
+  TG.onEvent && TG.onEvent('contentSafeAreaChanged', applyHeaderOffset);
+
+  // Временный дебаг — покажет значения прямо на экране
+  setTimeout(() => {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;top:0;right:0;background:red;color:#fff;font-size:11px;padding:4px 6px;z-index:9999;line-height:1.6';
+    const sa = TG.safeAreaInsets || {};
+    const cs = TG.contentSafeAreaInsets || {};
+    const cssV = getComputedStyle(document.documentElement).getPropertyValue('--tg-safe-area-inset-top');
+    d.textContent = `sa.top=${sa.top} cs.top=${cs.top} css=${cssV}`;
+    document.body.appendChild(d);
+  }, 300);
 }
 
 // ── Security: HTML escape for all user-generated content ─────────────────
