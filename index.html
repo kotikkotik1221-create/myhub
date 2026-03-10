@@ -1431,17 +1431,7 @@ if (TG) {
   TG.onEvent && TG.onEvent('viewportChanged', applyHeaderOffset);
 }
 
-setTimeout(() => {
-  const d = document.createElement('div');
-  d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:#fff;font-size:11px;padding:4px 6px;z-index:9999;line-height:1.6';
-  const tg = window.Telegram && window.Telegram.WebApp;
-  const sa = (tg && tg.safeAreaInsets) || {};
-  const cs = (tg && tg.contentSafeAreaInsets) || {};
-  const cssV = getComputedStyle(document.documentElement).getPropertyValue('--tg-safe-area-inset-top').trim();
-  const hdrPt = (document.querySelector('.hdr')||{}).style&&document.querySelector('.hdr').style.paddingTop;
-  d.textContent = `sa=${sa.top??'-'} cs=${cs.top??'-'} css=${cssV||'-'} pt=${hdrPt} exp=${tg&&tg.isExpanded}`;
-  document.body.appendChild(d);
-}, 600);
+
 
 
 
