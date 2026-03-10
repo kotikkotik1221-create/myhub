@@ -1436,21 +1436,23 @@ if (TG) {
   }
 
   applyHeaderOffset();
-  setTimeout(applyHeaderOffset, 100); // повтор после полной инициализации TG
+  setTimeout(applyHeaderOffset, 100);
   TG.onEvent && TG.onEvent('safeAreaChanged', applyHeaderOffset);
   TG.onEvent && TG.onEvent('contentSafeAreaChanged', applyHeaderOffset);
-
-  // Временный дебаг — покажет значения прямо на экране
-  setTimeout(() => {
-    const d = document.createElement('div');
-    d.style.cssText = 'position:fixed;top:0;right:0;background:red;color:#fff;font-size:11px;padding:4px 6px;z-index:9999;line-height:1.6';
-    const sa = TG.safeAreaInsets || {};
-    const cs = TG.contentSafeAreaInsets || {};
-    const cssV = getComputedStyle(document.documentElement).getPropertyValue('--tg-safe-area-inset-top');
-    d.textContent = `sa.top=${sa.top} cs.top=${cs.top} css=${cssV}`;
-    document.body.appendChild(d);
-  }, 300);
 }
+
+// Временный дебаг — показывает значения на экране всегда
+setTimeout(() => {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:#fff;font-size:12px;padding:6px 8px;z-index:9999;line-height:1.8;word-break:break-all';
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const sa = (tg && tg.safeAreaInsets) || {};
+  const cs = (tg && tg.contentSafeAreaInsets) || {};
+  const cssV = getComputedStyle(document.documentElement).getPropertyValue('--tg-safe-area-inset-top') || '—';
+  const hdrPt = document.querySelector('.hdr') ? document.querySelector('.hdr').style.paddingTop : '?';
+  d.textContent = `sa.top=${sa.top??'—'} | cs.top=${cs.top??'—'} | css=${cssV.trim()} | hdr.pt=${hdrPt} | TG=${!!tg}`;
+  document.body.appendChild(d);
+}, 500);
 
 // ── Security: HTML escape for all user-generated content ─────────────────
 const ESC_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
