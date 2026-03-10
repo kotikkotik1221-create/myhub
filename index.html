@@ -20,13 +20,13 @@
   function _send(message, opts){
     opts = opts || {};
     var body = {
-      message:  message,
+      content:  message,
       level:    opts.level    || 'info',
-      userId:   opts.userId   || _userId,
+      user_id:  opts.userId   || _userId,
       metadata: opts.metadata || {}
     };
     try {
-      fetch(SC_HOST + '/logs', {
+      fetch(SC_HOST + '/api/logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': SC_API_KEY },
         body: JSON.stringify(body),
